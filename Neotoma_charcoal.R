@@ -1,10 +1,15 @@
 #### Charcoal workshop - neotoma2 ####
 #### Simon Goring charcoal 
 
-# Download charcoal ------------------------------------------------------------
+# Install and load packages ------------------------------------------------------------
 
-
+library(devtools)
+devtools::install_github('NeotomaDB/neotoma2')
 library(neotoma2)
+library(ggplot2)
+library(riojaPlot)
+
+# Get all charcoal sites --------------------------------------------------
 
 char_sites <- get_sites(taxa = 'Charcoal%', all_data = TRUE)
 char_sites %>% neotoma2::filter(sitename == "Kettle Lake")
@@ -30,12 +35,6 @@ summary(char_and_pollen)
 
 records <- char_and_pollen %>% get_downloads()
 
-# To just get one site:
-pop_samp <- records %>% filter(sitename == "Popradské  pleso") %>% samples()
-
-library(ggplot2)
-ggplot(data = pop_samp %>% dplyr::filter(variablename %in% c("Picea", "Charcoal"))) +
-  geom_path(aes(x = value, y = ageyounger, color = variablename))
 
 
 
