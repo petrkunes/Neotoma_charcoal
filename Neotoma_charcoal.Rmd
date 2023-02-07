@@ -1,0 +1,134 @@
+---
+title: "Neotoma-charcoal workshop"
+author: "Petr Kuneš & Thomas Giesecke"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+We will introduce you to the [Neotoma Paleoecology Database](www.neotomadb.org) environment, including explorer, [Tilia](https://www.neotomadb.org/apps/tilia) and the `neotoma2` R package. The database uses an application programming interface (API), which serves the explorer as well as Tilia but also lets you query the database in R. We will show you which information you can most easily extract in either of these choices and provide a hands-on R exercise on working with charcoal and pollen data.
+
+[The `neotoma2`package](https://github.com/NeotomaDB/neotoma2) is available from GitHub and can be installed in R using the `devtools` package by using:
+
+```{r install packages, echo=TRUE, message=FALSE, warning=FALSE}
+devtools::install_github('NeotomaDB/neotoma2')
+library(neotoma2)
+library(riojaPlot)
+```
+
+### Downloading charcoal data of single site
+
+As an example, we will use the site 'Prášilské jezero', a mountain lake located in Czechia (Šumava Mts.). This site has been analyzed for several proxies, including pollen and macrocharcoal.
+
+First, we obtain the `siteid` and other metadata including its datasets for the chosen site and plot its position:
+
+```{r datasets code}
+PRA_ds <- get_datasets(get_sites(sitename = "Prášilské jezero"), all_data = TRUE)
+plotLeaflet(PRA_ds)
+```
+
+Filter out the datasets 'pollen' and 'charcoal'
+
+```{r filter datasets}
+PRA_pol_ch <- PRA_ds %>% neotoma2::filter(datasettype %in% c("pollen", "charcoal"))
+```
+
+And pull in and extract the sample data
+
+```{r pull samples, results='hide'}
+PRA_rec <- PRA_pol_ch %>% get_downloads()
+PRA_samp <- PRA_rec %>% samples()
+```
+
+### Filter samples
+
+Now we will `filter` only `charcoal` samples with values as `area` (function `filter` of `dplyr` package). We also select only relevant columns, and merge `variablename` and `elementtype`. 
+
+```{r filter charcoal}
+PRA_charcoal <- samples(PRA_rec) %>% dplyr::filter(ecologicalgroup == "CHAR" & elementtype == "area") %>%
+  dplyr::select(depth, age, variablename, elementtype, value) %>%
+  dplyr::mutate(variable = paste(variablename, elementtype, sep = " "), .keep = "unused") %>%
+  dplyr::group_by(depth, age) %>%
+  dplyr::arrange(depth)
+```
+
+In the next step, we pull in pollen samples that are measured using `NISP` (number of identified specimen), only pollen element (to avoid e.g., stomata). Finally, we `filter` taxa to calculate pollen percentages for ecological groups of trees and shrubs (`TRSH`) and upland herbs (`UPHE`).
+
+```{r pull pollen samples}
+PRA_samp_short <- samples(PRA_rec) %>% 
+  dplyr::filter(ecologicalgroup %in% c("TRSH","UPHE")) %>%
+  dplyr::filter(elementtype == "pollen") %>%
+  dplyr::filter(units == "NISP")
+```
+
+Finally, we need to transform the values to proportions using all TRSH and HERB taxa.
+
+```{r proportions}
+PRA_pollen_perc <- PRA_samp_short %>%
+  dplyr::group_by(depth, age) %>%
+  dplyr::mutate(pollencount = sum(value, na.rm = TRUE)) %>%
+  dplyr::group_by(variablename) %>% 
+  dplyr::mutate(prop = value / pollencount) %>% 
+  dplyr::arrange(desc(age))
+```
+
+For further use in other packages, it is useful to pivot the data to a "wide" table, with `variablenames` as column headings. We do this for both pollen and charcoal datasets using `tidyr`.
+
+```{r pivot}
+PRA_pollen_perc <- PRA_pollen_perc %>%
+  dplyr::select(depth, age, variablename, prop) %>% 
+  dplyr::mutate(prop = as.numeric(prop))
+
+PRA_pollen_wide <- tidyr::pivot_wider(PRA_pollen_perc,
+                             id_cols = c(depth, age),
+                             names_from = variablename,
+                             values_from = prop,
+                             values_fill = 0)
+
+PRA_charcoal_wide <- tidyr::pivot_wider(PRA_charcoal,
+                                        id_cols = c(depth, age),
+                                        names_from = variable,
+                                        values_from = value,
+                                        values_fill = 0)
+```
+
+### Stratigraphic plotting
+
+To plot a stratigraphic diagram, we can use `riojaPlot` and combine pollen and charcoal proxies. For pollen, we select 15 most frequent TRSH `taxa` to be plotted.
+
+```{r}
+PRA_plot_taxa <- taxa(PRA_rec) %>% dplyr::filter(ecologicalgroup %in% c("TRSH")) %>%
+  dplyr::filter(elementtype == "pollen") %>%
+  dplyr::arrange(desc(samples)) %>% 
+  head(n = 15) 
+```
+
+```{r}
+PRA_plot <- riojaPlot(PRA_pollen_wide[,-1:-2]*100, PRA_pollen_wide[,1:2],
+          selVars = PRA_plot_taxa$variablename,
+          scale.percent = TRUE,
+          sec.yvar.name="age",
+          plot.sec.axis = TRUE,
+          xRight = 0.9)
+riojaPlot(PRA_charcoal_wide[,-1:-2], PRA_charcoal_wide[,1:2], 
+          minmax = data.frame(0,6),
+          plot.poly = FALSE,
+          plot.bar = TRUE,
+          plot.line = FALSE,
+          lwd.bar = 2,
+          col.bar = "black",
+          riojaPlot = PRA_plot)
+```
+
+To further adapt your stratigraphic plot, please refer to [riojaPlot gallery](To further adapt your stratigraphic plot, please refer to riojaPlot gallery https://nsj3.github.io/riojaPlot_gallery/riojaPlot_Gallery.html#1).
+
+\

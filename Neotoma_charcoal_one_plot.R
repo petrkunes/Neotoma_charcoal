@@ -10,17 +10,16 @@ library(riojaPlot)
 
 # Get just one site ------------------------------------------------
 
-# Select Prášilské jezero (CZ) and extract samples
+# Select Prášilské jezero (CZ) 
 PRA_ds <- get_datasets(get_sites(sitename = "Prášilské jezero"), all_data = TRUE)
+plotLeaflet(PRA_ds)
+
+# Filter our the datasets from pollen and charcoal
 PRA_pol_ch <- PRA_ds %>% neotoma2::filter(datasettype %in% c("pollen", "charcoal"))
+
+# Pull in and extract sample data
 PRA_rec <- PRA_pol_ch %>% get_downloads()
 PRA_samp <- PRA_rec %>% samples()
-
-# Select only taxa identified from pollen (and only trees/shrubs) for plotting
-PRA_plot_taxa <- taxa(PRA_rec) %>% dplyr::filter(ecologicalgroup %in% c("TRSH")) %>%
-  dplyr::filter(elementtype == "pollen") %>%
-  dplyr::arrange(desc(samples)) %>% 
-  head(n = 15) 
 
 # Select charcoal area
 PRA_charcoal <- samples(PRA_rec) %>% dplyr::filter(ecologicalgroup == "CHAR" & elementtype == "area") %>%
@@ -29,14 +28,8 @@ PRA_charcoal <- samples(PRA_rec) %>% dplyr::filter(ecologicalgroup == "CHAR" & e
   dplyr::group_by(depth, age) %>%
   dplyr::arrange(depth)
 
-# Select pollen taxa for calculation pollen sum and %
-PRA_taxa_sum <- taxa(PRA_rec) %>% dplyr::filter(ecologicalgroup %in% c("TRSH", "UPHE")) %>%
-  dplyr::filter(elementtype == "pollen") %>%
-  dplyr::arrange(desc(samples))
-
-# Clean up. Select only pollen measured using NISP.
+# Select only pollen samples measured using NISP and taxa for calculating %.
 PRA_samp_short <- samples(PRA_rec) %>% 
-  dplyr::filter(variablename %in% PRA_taxa_sum$variablename) %>% 
   dplyr::filter(ecologicalgroup %in% c("TRSH","UPHE")) %>%
   dplyr::filter(elementtype == "pollen") %>%
   dplyr::filter(units == "NISP")
@@ -67,6 +60,13 @@ PRA_charcoal_wide <- tidyr::pivot_wider(PRA_charcoal,
                                         values_fill = 0)
 
 # Plot stratigraphic diagram in RiojaPlot ---------------------------------
+
+# Select only pollen taxa (and only trees/shrubs) for plotting
+PRA_plot_taxa <- taxa(PRA_rec) %>% dplyr::filter(ecologicalgroup %in% c("TRSH")) %>%
+  dplyr::filter(elementtype == "pollen") %>%
+  dplyr::arrange(desc(samples)) %>% 
+  head(n = 15) 
+
 
 PRA_plot <- riojaPlot(PRA_pollen_wide[,-1:-2]*100, PRA_pollen_wide[,1:2],
           selVars = PRA_plot_taxa$variablename,
