@@ -1,5 +1,5 @@
 ---
-title: "Neotoma-charcoal workshop"
+title: "Neotoma-charcoal Workshop, Göttingen, Germany"
 author: "Petr Kuneš & Thomas Giesecke"
 date: "2023-02-15"
 output:
@@ -24,6 +24,42 @@ library(neotoma2)
 library(riojaPlot)
 library(rioja)
 library(vegan)
+```
+
+## Get all sites
+
+Sites in `neotoma2` are primarily spatial objects. They have names, locations, and are found within the context of geopolitical units, but within the API and the package, the site itself does not have associated information about taxa, dataset types or ages. It is simply the container into which we add that information.
+
+We can use several parameters to search sites, one of them is `taxa`. Here we search all sites containing \"Charcoal\" taxon and its variations.
+
+```{r sites}
+char_sites <- get_sites(taxa = 'Charcoal%', all_data = TRUE)
+neotoma2::summary(head(char_sites, 10))
+```
+
+Now we get datasets to the sites, and filter charcoal dataset types.
+
+```{r datasets}
+char_ds <- char_sites %>% get_datasets(all_data = TRUE)
+table(as.data.frame(datasets(char_ds))$datasettype)
+char_mc <- char_ds %>% neotoma2::filter(datasettype %in% c("macrocharcoal", "charcoal", "microcharcoal"))
+```
+
+Now we have to get all pollen datasets and filter them to sites with existing charcoal. So we also filter charcoal datasets with existing pollen dataset.
+
+```{r filter char pollen, eval=FALSE}
+pol_ds <- get_datasets(datasettype = "pollen", all_data = TRUE)
+pol_ds_char <- pol_ds %>%  filter(siteid %in% getids(char_mc)$siteid)
+char_mc_pol <- char_mc %>% neotoma2::filter(siteid %in% getids(pol_ds_char)$siteid)
+```
+
+Finally, we join both charcoal and pollen datasets and download all data.
+
+```{r download, eval=FALSE}
+char_and_pollen <- c(pol_ds_char, char_mc_pol)
+records <- char_and_pollen %>% get_downloads()
+samples_ch_p <- records %>% samples()
+head(samples_ch_p, 20)
 ```
 
 ## Using single site

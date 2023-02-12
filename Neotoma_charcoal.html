@@ -13,7 +13,7 @@
 
 <meta name="date" content="2023-02-15" />
 
-<title>Neotoma-charcoal workshop</title>
+<title>Neotoma-charcoal Workshop, Göttingen, Germany</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -5353,7 +5353,8 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Neotoma-charcoal workshop</h1>
+<h1 class="title toc-ignore">Neotoma-charcoal Workshop, Göttingen,
+Germany</h1>
 <h4 class="author">Petr Kuneš &amp; Thomas Giesecke</h4>
 <h4 class="date">2023-02-15</h4>
 
@@ -5362,6 +5363,8 @@ display: none;
 <div id="TOC">
 <ul>
 <li><a href="#introduction" id="toc-introduction">Introduction</a></li>
+<li><a href="#get-all-sites" id="toc-get-all-sites">Get all
+sites</a></li>
 <li><a href="#using-single-site" id="toc-using-single-site">Using single
 site</a>
 <ul>
@@ -5406,6 +5409,54 @@ library(riojaPlot)
 library(rioja)
 library(vegan)</code></pre>
 </div>
+<div id="get-all-sites" class="section level2">
+<h2>Get all sites</h2>
+<p>Sites in <code>neotoma2</code> are primarily spatial objects. They
+have names, locations, and are found within the context of geopolitical
+units, but within the API and the package, the site itself does not have
+associated information about taxa, dataset types or ages. It is simply
+the container into which we add that information.</p>
+<p>We can use several parameters to search sites, one of them is
+<code>taxa</code>. Here we search all sites containing &quot;Charcoal&quot; taxon
+and its variations.</p>
+<pre class="r"><code>char_sites &lt;- get_sites(taxa = &#39;Charcoal%&#39;, all_data = TRUE)
+neotoma2::summary(head(char_sites, 10))</code></pre>
+<pre><code>##    siteid            sitename collectionunit chronolgies datasets         types
+## 1       8 Abalone Rocks Marsh        ABALONE           0        1      charcoal
+## 2     196  Hells Kitchen Lake       HELLSK05           0        1        pollen
+## 3     214          Arts Lough       ARTSLOUG           0        1        pollen
+## 4     273      Blacktail Pond          BTP06           0        1        pollen
+## 5     459      Wentworth Lake           WENT           0        1 macrocharcoal
+## 6     519      Cub Creek Pond       CUBCRK17           0        1        pollen
+## 7     525         Cupola Pond        CUPOLA4           0        1 macrocharcoal
+## 8    2303         Silver Lake       SILVER07           0        1      charcoal
+## 9    2520   Stotzel-Leis Site         STOT14           0        1      charcoal
+## 10   2570         Lake Tulane        TULANEG           0        1      charcoal</code></pre>
+<p>Now we get datasets to the sites, and filter charcoal dataset
+types.</p>
+<pre class="r"><code>char_ds &lt;- char_sites %&gt;% get_datasets(all_data = TRUE)
+table(as.data.frame(datasets(char_ds))$datasettype)</code></pre>
+<pre><code>## 
+##                charcoal charcoal surface sample         dinoflagellates 
+##                     228                      94                       1 
+##           macrocharcoal           microcharcoal       plant macrofossil 
+##                      28                      26                      30 
+##                  pollen 
+##                     414</code></pre>
+<pre class="r"><code>char_mc &lt;- char_ds %&gt;% neotoma2::filter(datasettype %in% c(&quot;macrocharcoal&quot;, &quot;charcoal&quot;, &quot;microcharcoal&quot;))</code></pre>
+<p>Now we have to get all pollen datasets and filter them to sites with
+existing charcoal. So we also filter charcoal datasets with existing
+pollen dataset.</p>
+<pre class="r"><code>pol_ds &lt;- get_datasets(datasettype = &quot;pollen&quot;, all_data = TRUE)
+pol_ds_char &lt;- pol_ds %&gt;%  filter(siteid %in% getids(char_mc)$siteid)
+char_mc_pol &lt;- char_mc %&gt;% neotoma2::filter(siteid %in% getids(pol_ds_char)$siteid)</code></pre>
+<p>Finally, we join both charcoal and pollen datasets and download all
+data.</p>
+<pre class="r"><code>char_and_pollen &lt;- c(pol_ds_char, char_mc_pol)
+records &lt;- char_and_pollen %&gt;% get_downloads()
+samples_ch_p &lt;- records %&gt;% samples()
+head(samples_ch_p, 20)</code></pre>
+</div>
 <div id="using-single-site" class="section level2">
 <h2>Using single site</h2>
 <div id="downloading-charcoal-and-pollen-data" class="section level3">
@@ -5417,8 +5468,8 @@ several proxies, including pollen and macrocharcoal.</p>
 its datasets for the chosen site and plot its position:</p>
 <pre class="r"><code>PRA_ds &lt;- get_datasets(get_sites(sitename = &quot;Prášilské jezero&quot;), all_data = TRUE)
 plotLeaflet(PRA_ds)</code></pre>
-<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-cfc205707f81615f2bbd" style="width:672px;height:480px;"></div>
-<script type="application/json" data-for="htmlwidget-cfc205707f81615f2bbd">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addProviderTiles","args":["Stamen.TerrainBackground",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[49.075004,13.399778,10,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":true,"riseOffset":250,"stroke":true,"color":"#03F","weight":5,"opacity.1":0.5,"fill":true,"fillColor":"#03F","fillOpacity":0.2},{"showCoverageOnHover":true,"zoomToBoundsOnClick":true,"spiderfyOnMaxZoom":true,"removeOutsideVisibleBounds":true,"spiderLegPolylineOptions":{"weight":1.5,"color":"#222","opacity":0.5},"freezeAtZoom":false},null,"<b>Prášilské jezero<\/b><br><b>Description:<\/b> Glacial cirque lake.<br><a href=http://apps.neotomadb.org/explorer/?siteids=26991>Explorer Link<\/a>",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.075004,49.075004],"lng":[13.399778,13.399778]}},"evals":[],"jsHooks":[]}</script>
+<div class="leaflet html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-0600effc32da48d5356b" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-0600effc32da48d5356b">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addProviderTiles","args":["Stamen.TerrainBackground",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org\">OpenStreetMap<\/a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA<\/a>"}]},{"method":"addCircleMarkers","args":[49.075004,13.399778,10,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":true,"riseOffset":250,"stroke":true,"color":"#03F","weight":5,"opacity.1":0.5,"fill":true,"fillColor":"#03F","fillOpacity":0.2},{"showCoverageOnHover":true,"zoomToBoundsOnClick":true,"spiderfyOnMaxZoom":true,"removeOutsideVisibleBounds":true,"spiderLegPolylineOptions":{"weight":1.5,"color":"#222","opacity":0.5},"freezeAtZoom":false},null,"<b>Prášilské jezero<\/b><br><b>Description:<\/b> Glacial cirque lake.<br><a href=http://apps.neotomadb.org/explorer/?siteids=26991>Explorer Link<\/a>",null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.075004,49.075004],"lng":[13.399778,13.399778]}},"evals":[],"jsHooks":[]}</script>
 <p>Filter out the datasets ‘pollen’ and ‘charcoal’</p>
 <pre class="r"><code>PRA_pol_ch &lt;- PRA_ds %&gt;% neotoma2::filter(datasettype %in% c(&quot;pollen&quot;, &quot;charcoal&quot;))</code></pre>
 <p>And pull in and extract the sample data</p>
