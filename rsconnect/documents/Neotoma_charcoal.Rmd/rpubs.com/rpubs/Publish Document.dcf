@@ -4,8 +4,8 @@ username:
 account: rpubs
 server: rpubs.com
 hostUrl: rpubs.com
-appId: https://api.rpubs.com/api/v1/document/1000180/f129eb20550b49368e37d5658a8a7263
-bundleId: https://api.rpubs.com/api/v1/document/1000180/f129eb20550b49368e37d5658a8a7263
-url: http://rpubs.com/petrkunes/1000180
-when: 1676235718.91442
-lastSyncTime: 1676235718.91443
+appId: https://api.rpubs.com/api/v1/document/1002448/b072b234aa11404f879096b18a4650ef
+bundleId: https://api.rpubs.com/api/v1/document/1002448/b072b234aa11404f879096b18a4650ef
+url: http://rpubs.com/petrkunes/1002448/edit
+when: 1676322347.89907
+lastSyncTime: 1676322347.89908

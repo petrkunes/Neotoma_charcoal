@@ -1,0 +1,18 @@
+Now we have to get all pollen datasets and filter them to sites with existing charcoal. So we also filter charcoal datasets with existing pollen dataset.
+
+```{r filter char pollen, eval=FALSE}
+pol_ds <- get_datasets(datasettype = "pollen", all_data = TRUE)
+pol_ds_char <- pol_ds %>%  filter(siteid %in% getids(char_mc)$siteid)
+char_mc_pol <- char_mc %>% neotoma2::filter(siteid %in% getids(pol_ds_char)$siteid)
+```
+
+Finally, we join both charcoal and pollen datasets and download all data.
+
+```{r download, eval=FALSE}
+char_and_pollen <- c(pol_ds_char, char_mc_pol)
+records <- char_and_pollen %>% get_downloads()
+samples_ch_p <- records %>% samples()
+head(samples_ch_p, 20)
+```
+
+## 

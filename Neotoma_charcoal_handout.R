@@ -1,5 +1,6 @@
 #### Charcoal workshop - neotoma2 ####
-
+#### Göttingen 15.-16.2.2023.     ####
+#### Petr Kuneš & Thomas Giesecke ####
 
 # Install and load packages ------------------------------------------------------------
 
@@ -9,6 +10,20 @@ library(neotoma2)
 library(rioja)
 library(riojaPlot)
 library(vegan)
+
+
+# Get all charcoal sites --------------------------------------------------
+
+char_sites <- get_sites(taxa = 'Charcoal%', all_data = TRUE)
+
+neotoma2::summary(head(char_sites, 10))
+
+char_ds <- char_sites %>% get_datasets(all_data = TRUE)
+table(as.data.frame(datasets(char_ds))$datasettype)
+
+char_mc <- char_ds %>% neotoma2::filter(datasettype %in% c("macrocharcoal", "charcoal", "microcharcoal"))
+neotoma2::plotLeaflet(char_mc)
+
 
 # Get just one site ------------------------------------------------
 
@@ -35,6 +50,7 @@ PRA_samp_short <- samples(PRA_rec) %>%
   dplyr::filter(ecologicalgroup %in% c("TRSH","UPHE")) %>%
   dplyr::filter(elementtype == "pollen") %>%
   dplyr::filter(units == "NISP")
+PRA_eco_g <- PRA_samp_short %>% dplyr::select(variablename, ecologicalgroup) %>% dplyr::distinct()
 
 # Transform to proportion values.
 PRA_pollen_perc <- PRA_samp_short %>%
@@ -50,10 +66,10 @@ PRA_pollen_perc <- PRA_pollen_perc %>%
   dplyr::mutate(prop = as.numeric(prop))
 
 PRA_pollen_wide <- tidyr::pivot_wider(PRA_pollen_perc,
-                             id_cols = c(depth, age),
-                             names_from = variablename,
-                             values_from = prop,
-                             values_fill = 0)
+                                      id_cols = c(depth, age),
+                                      names_from = variablename,
+                                      values_from = prop,
+                                      values_fill = 0)
 
 PRA_charcoal_wide <- tidyr::pivot_wider(PRA_charcoal,
                                         id_cols = c(depth, age),
@@ -77,24 +93,26 @@ PRA_zones<-cutree(PRA_clust,7)
 
 # Plot
 PRA_plot1 <- riojaPlot(PRA_pollen_wide[,-1:-2]*100, PRA_pollen_wide[,1:2],
-          selVars = PRA_plot_taxa$variablename,
-          scale.percent = TRUE,
-          sec.yvar.name="age",
-          plot.sec.axis = TRUE,
-          srt.xlabel = 60,
-          xRight = 0.8)
+                       selVars = PRA_plot_taxa$variablename,
+                       groups = PRA_eco_g,
+                       plot.cumul = TRUE,
+                       scale.percent = TRUE,
+                       sec.yvar.name="age",
+                       plot.sec.axis = TRUE,
+                       srt.xlabel = 60,
+                       xRight = 0.8)
 PRA_plot2 <- addRPClust(PRA_plot1, PRA_clust, xLeft=0.8, xRight = 0.9)
 addRPClustZone(PRA_plot2, PRA_clust, nZone=7, xRight = 0.9, col = "red")
 
 PRA_plot3 <- riojaPlot(PRA_charcoal_wide[,-1:-2], PRA_charcoal_wide[,1:2], 
-          minmax = data.frame(0,6),
-          plot.poly = FALSE,
-          plot.bar = TRUE,
-          plot.line = FALSE,
-          lwd.bar = 2,
-          col.bar = "black",
-          xLeft = 0.9,
-          riojaPlot = PRA_plot2)
+                       minmax = data.frame(0,6),
+                       plot.poly = FALSE,
+                       plot.bar = TRUE,
+                       plot.line = FALSE,
+                       lwd.bar = 2,
+                       col.bar = "black",
+                       xLeft = 0.9,
+                       riojaPlot = PRA_plot2)
 
 # Comparing the trend in charcoal to variability in pollen composition --------
 
@@ -130,7 +148,7 @@ ordiplot(PRA_pca, type = "n")
 points(PRA_pca, col = PRA_zones + 6, pch = PRA_zones, lwd = 2)
 for (i in tax) {arrows(0,0,tax.sc[i,1], tax.sc[i,2], length = 0.1, angle = 20, code = 2, lwd = 2, col = "red")
   text(tax.sc[i,1]+0.05, tax.sc[i,2]+0.05, i , cex = 1.2, col = "red")
-  }
+}
 plot(PRA_ordisurf, add=TRUE)
 legend(-1, 0, legend=c("zone 1", "zone 2", "zone 3", "zone 4", "zone 5", "zone 6", "zone 7"),
        pch = c(1,2,3,4,5,6,7), pt.cex = 1.2, pt.lwd=2, bty = "n", col=c(7,8,9,10,11,12,13))
@@ -154,3 +172,4 @@ cor.data <- as.matrix(PRA_cor$r[89,which(PRA_cor$P[89,-89]<0.05)])
 colnames(cor.data) <- "Charcoal"
 
 corrplot(t(cor.data))
+
